@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-api-service    # Nom du Service (adresse DNS)
+
+spec:
+  selector:
+    app: flask-api           # ⭐ "Redirige vers TOUS les Pods avec ce label"
+                             # Rappel : on a 3 Pods Flask avec app: flask-api
+
+  ports:
+    - protocol: TCP
+      port: 80               # Port exposé par le Service
+      targetPort: 5000       # Port réel dans les Pods Flask
+
+  type: ClusterIP            # Accessible SEULEMENT dans le cluster
+                             # (pas depuis Internet directement)

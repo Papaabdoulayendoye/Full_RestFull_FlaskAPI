@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment           # Pourquoi Deployment (et pas StatefulSet) ?
+                           # → Flask ne stocke pas de données
+                           # → On peut avoir 3, 10, 100 copies identiques
+metadata:
+  name: flask-api          # Nom du Deployment
+
+spec:
+  replicas: 3              # ⭐ ON VEUT 3 COPIES DE FLASK
+                           # Si une plante, Kubernetes en recrée une
+
+  selector:
+    matchLabels:
+      app: flask-api       # "Gère les Pods avec ce label"
+
+  template:                # Le modèle de Pod
+    metadata:
+      labels:
+        app: flask-api     # Chaque Pod aura ce label
+
+    spec:
+      containers:
+        - name: flask-api
+          image: flask-todo:latest        # ⚠️ L'image qu'on va builder
+          imagePullPolicy: Never          # Ne cherche PAS sur Docker Hub
+                                          # Utilise l'image locale de minikube
+
+          ports:
+            - containerPort: 5000         # Flask écoute sur 5000
+
+          env:                            # Variables d'environnement
+            - name: DATABASE_URL
+              value: "mysql+pymysql://root:rootpass@mysql:3306/tododb"
+                                          #                        ^^^^^
+                                          #      Le nom du Service MySQL !
+
+            - name: MYSQL_ROOT_PASSWORD   # On récupère depuis le Secret
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_DATABASE
+
+          resources:                      # ⭐ TRÈS IMPORTANT
+            requests:                     # Minimum garanti
+              memory: "128Mi"             # 128 Mo de RAM
+              cpu: "100m"                 # 0.1 CPU (10%)
+            limits:                       # Maximum autorisé
+              memory: "256Mi"             # 256 Mo max
+              cpu: "500m"                 # 0.5 CPU max
+
+          readinessProbe:                 # "Est-ce que Flask est PRÊT ?"
+            httpGet:
+              path: /healthz               # Appelle GET /health
+              port: 5000
+            initialDelaySeconds: 10       # Attends 10s avant le 1er check
+            periodSeconds: 5              # Vérifie toutes les 5s
+
+          livenessProbe:                  # "Est-ce que Flask est VIVANT ?"
+            httpGet:
+              path: /healthz
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 10

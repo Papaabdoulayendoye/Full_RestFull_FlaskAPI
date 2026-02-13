@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress              # Point d'entrée HTTP depuis l'extérieur
+metadata:
+  name: flask-ingress
+
+spec:
+  ingressClassName: nginx  # Utilise Nginx comme Ingress Controller
+                           # (on l'a activé au début avec minikube addons enable ingress)
+
+  rules:                   # Les règles de routage
+    - host: todo.local     # ⭐ L'URL qu'on tapera dans le navigateur
+
+      http:
+        paths:
+          - path: /        # Toutes les URLs : /, /todos, /health...
+            pathType: Prefix
+
+            backend:       # Où rediriger le trafic ?
+              service:
+                name: flask-api-service    # Vers ce Service !
+                port:
+                  number: 80               # Sur le port 80

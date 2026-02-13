@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: StatefulSet          # Pourquoi StatefulSet et pas Deployment ?
+                           # → Parce que MySQL stocke des données
+                           # → StatefulSet garantit un stockage permanent
+metadata:
+  name: mysql              # Nom de ce StatefulSet
+spec:
+  serviceName: mysql       # Le Service associé (défini plus bas)
+  replicas: 1              # 1 seule copie de MySQL (bases de données = pas de copies multiples facilement)
+
+  selector:
+    matchLabels:
+      app: mysql           # "Gère tous les Pods qui ont le label app: mysql"
+
+  template:                # Le "modèle" de Pod qu'on va créer
+    metadata:
+      labels:
+        app: mysql         # Chaque Pod créé aura ce label
+
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0           # L'image Docker MySQL
+          ports:
+            - containerPort: 3306    # Port MySQL
+
+          env:                       # Variables d'environnement
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:        # On récupère depuis le Secret créé avant !
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_DATABASE
+
+          volumeMounts:              # Monte le disque dans le conteneur
+            - name: mysql-storage
+              mountPath: /var/lib/mysql   # Là où MySQL stocke ses données
+
+  volumeClaimTemplates:              # Demande de stockage permanent
+    - metadata:
+        name: mysql-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]   # Un seul Pod peut écrire dessus
+        resources:
+          requests:
+            storage: 1Gi              # 1 Go de stockage
+
+---
+apiVersion: v1
+kind: Service              # Un Service = une adresse réseau stable
+metadata:
+  name: mysql              # ⚠️ Ce nom est IMPORTANT !
+                           # Flask va se connecter à "mysql:3306"
+spec:
+  selector:
+    app: mysql             # "Redirige le trafic vers les Pods avec ce label"
+
+  ports:
+    - port: 3306           # Port exposé par le Service
+
+  clusterIP: None
+---

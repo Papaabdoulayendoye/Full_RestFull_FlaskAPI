@@ -10,14 +10,19 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    DATABASE_URL = os.getenv("DATABASE_URL")
-    app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+    # DATABASE_URL = os.getenv("DATABASE_URL")
+    #app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+        'DATABASE_URL',
+        'mysql+pymysql://root:rootpass@mysql:3306/tododb'
+    )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
+    """
     engine = create_engine(DATABASE_URL)
-
+    
     if not database_exists(engine.url):
         create_database(engine.url)
+    """
 
     from . import models
     db.init_app(app)
