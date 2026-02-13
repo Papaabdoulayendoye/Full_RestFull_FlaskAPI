@@ -1,6 +1,6 @@
 FROM python:3.13-slim
 
-WORKDIR APP/
+WORKDIR app/
 
 COPY requirements.txt .
 
@@ -15,4 +15,4 @@ USER appuser
 
 EXPOSE 5000
 
-CMD ["gunivorn", "--bind", "0.0.0.0:5000", "wsgi:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "wsgi:app"]
